@@ -1,0 +1,31 @@
+{
+  "name": "trbl-evergreen",
+  "version": "0.0.1",
+  "description": "Refreshing take on Node Configuration",
+  "main": "index.js",
+  "scripts": {
+    "peg:generate": "node_modules/.bin/pegjs lib/grammar.pegjs lib/generated/grammar.js",
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/the-terribles/evergreen.git"
+  },
+  "keywords": [
+    "config"
+  ],
+  "author": "Richard Clayton <rlc.blacksun@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/the-terribles/evergreen/issues"
+  },
+  "homepage": "https://github.com/the-terribles/evergreen#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5",
+    "sinon": "^1.17.3"
+  },
+  "dependencies": {
+    "pegjs": "^0.9.0"
+  }
+}
