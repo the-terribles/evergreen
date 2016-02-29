@@ -26,6 +26,7 @@
     "sinon": "^1.17.3"
   },
   "dependencies": {
+    "lodash": "^4.5.1",
     "pegjs": "^0.9.0"
   }
 }
