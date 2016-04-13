@@ -1,10 +1,55 @@
 'use strict';
 
-var chai = require('chai'),
+var _ = require('lodash'),
+    chai = require('chai'),
     expect = chai.expect,
     tree = require('../lib/tree');
 
 describe('Tree Handler', function(){
+
+  describe('Symbolic Paths', function(){
+
+    it('can deconstruct a simple symbolic path into an array', function(){
+
+      expect(tree.splitPath('foo.bar')).to.deep.equal([
+        { field: 'foo' },
+        { field: 'bar' }
+      ]);
+
+    });
+
+    it('can deconstruct a symbolic path with array indexers into an array', function(){
+
+      expect(tree.splitPath('foo.bar[42].hello')).to.deep.eq([
+        { field: 'foo' },
+        { field: 'bar' },
+        { index: 42 },
+        { field: 'hello' }
+      ]);
+
+    });
+
+    it('can construct a simple symbolic path from an array', function(){
+
+      var arrayPath = [
+        { field: 'foo' }, { field: 'bar' }
+      ];
+
+      expect(tree.joinPaths(arrayPath)).to.eq('foo.bar');
+
+    });
+
+    it('can construct a symbolic path with array indexes from an array', function(){
+
+      var arrayPath = [
+        { field: 'foo' }, { field: 'bar' }, { index: 42 }, { field: 'hello' }
+      ];
+
+      expect(tree.joinPaths(arrayPath)).to.eq('foo.bar[42].hello');
+
+    });
+
+  });
 
   it('processes a deeply nested tree', function(){
 
@@ -21,33 +66,30 @@ describe('Tree Handler', function(){
 
     expect(actual.errors).to.have.lengthOf(0);
 
-    expect(actual.evaluatedTree).to.deep.eq({
-      foo: 'bar',
-      pool: {
-        driver: 'mysql',
-        connection: {
-          __type__: 'Expression',
-          expression: [
-            { type: 'content', value: 'mysql://' },
-            { type: 'placeholder', value: 'host' },
-            { type: 'content', value: ':' },
-            { type: 'placeholder', value: 'port' }
-          ]
+    expect(actual.paths).to.deep.equal({
+      'foo':     { type: 'constant', path: [ { field: 'foo' } ] },
+      'pool':    { type: 'branch', path: [ { field: 'pool' } ]  },
+      'pool.driver':  { type: 'constant', path: [ { field: 'pool' }, { field: 'driver' } ]  },
+      'pool.connection': {
+        type: 'expression',
+        dependencies: {
+          'host': [ { field: 'host' }],
+          'port': [ { field: 'port' } ]
         },
-        instances: 10
-      }
+        path: [ { field: 'pool' }, { field: 'connection' } ],
+        expression: [
+          { type: 'content', value: 'mysql://' },
+          { type: 'placeholder', value: 'host' },
+          { type: 'content', value: ':' },
+          { type: 'placeholder', value: 'port' }
+        ]
+      },
+      'pool.instances': { type: 'constant', path: [ { field: 'pool' }, { field: 'instances' } ] }
     });
-
-    expect(actual.pathsToProcess).to.deep.eq([
-      {
-        local: [ { field: 'pool' }, { field: 'connection' } ],
-        global: [ { field: 'pool' }, { field: 'connection' } ]
-      }
-    ]);
 
   });
 
-  it('processes arrays as using indexed placeholders', function(){
+  it('processes arrays as using indexed placeholders', function() {
 
     var config = {
       foo: 'bar',
@@ -63,41 +105,37 @@ describe('Tree Handler', function(){
 
     expect(actual.errors).to.have.lengthOf(0);
 
-    expect(actual.evaluatedTree).to.deep.eq({
-      foo: 'bar',
-      array: [
-        {
-          __type__: 'Expression',
-          expression: [
-            { type: 'content', value: 'mysql://' },
-            { type: 'placeholder', value: 'host' },
-            { type: 'content', value: ':' },
-            { type: 'placeholder', value: 'port' }
-          ]
+    expect(actual.paths).to.deep.equal({
+      'foo':     { type: 'constant', path: [ { field: 'foo' } ] },
+      'array':    { type: 'branch', path: [ { field: 'array' } ]  },
+      'array[0]': {
+        type: 'expression',
+        dependencies: {
+          'host': [ { field: 'host' }],
+          'port': [ { field: 'port' } ]
         },
-        {
-          consul: {
-            __type__: 'Expression',
-            expression: [
-              { type: 'content', value: 'http://localhost:8500?token=' },
-              { type: 'placeholder', value: 'consul.token' }
-            ]
-          }
-        }
-      ]
-    });
-
-    expect(actual.pathsToProcess).to.deep.eq([
-      {
-        local: [ { field: 'array' }, { index: 0 } ],
-        global: [ { field: 'array' }, { index: 0 } ]
+        path: [ { field: 'array' }, { index: 0 } ],
+        expression: [
+          { type: 'content', value: 'mysql://' },
+          { type: 'placeholder', value: 'host' },
+          { type: 'content', value: ':' },
+          { type: 'placeholder', value: 'port' }
+        ]
       },
-      {
-        local: [ { field: 'array' }, { index: 1 }, { field: 'consul' } ],
-        global: [ { field: 'array' }, { index: 1 }, { field: 'consul' } ]
+      'array[1]': { type: 'branch', path: [ { field: 'array' }, { index: 1 } ] },
+      'array[1].consul': {
+        type: 'expression',
+        dependencies: {
+          'consul.token': [ { field: 'consul' }, { field: 'token' }]
+        },
+        path: [ { field: 'array' }, { index: 1 }, { field: 'consul' } ],
+        expression: [
+          { type: 'content', value: 'http://localhost:8500?token=' },
+          { type: 'placeholder', value: 'consul.token' }
+        ]
       }
-    ]);
-
+    });
   });
+
 
 });
