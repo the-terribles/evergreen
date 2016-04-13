@@ -8,13 +8,13 @@ With a config file like this:
 
 ```json
 {
-	"$extends": ["$ref:fw://default.json", "$ref:fw://{{process.env.NODE_ENV}}.json"]
+	"$extends": ["$ref:fw://default.json", "$ref:fw://{{process.env.NODE_ENV}}.json"],
 	"api": {
 		"host": "10.1.1.2",
 		"port": 7775
 	},
 	"resources": {
-		"base_url": "http://{{api.host}}:{{api.port}}/api/"
+		"base_url": "http://{{api.host}}:{{api.port}}/api/",
 		"users": "{{resources.base_url}}/users"
 	},
 	"cache": "$ref:consul://consul.youeye.com/{{process.env}}/cache",
@@ -23,7 +23,7 @@ With a config file like this:
 
 
 {
-	"consul_keyspace": "{{consul_host}}/{{env.NODE_ENV}}"
+	"consul_keyspace": "{{consul_host}}/{{env.NODE_ENV}}",
 	"cache": "$ref:consul://{{consul_keyspace}}/cache",
 	"db": "$ref:consul://{{consul_keyspace}}/db"
 }
