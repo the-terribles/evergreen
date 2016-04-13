@@ -7,7 +7,7 @@ var chai = require('chai'),
 
 var expectExpression = function(pieces){
   return new ExpressionExpect(pieces);
-}
+};
 
 var ExpressionExpect = function(pieces){
   this.pieces = pieces;
@@ -16,12 +16,12 @@ var ExpressionExpect = function(pieces){
 ExpressionExpect.prototype.at = function(index){
   this.index = index;
   return this;
-}
+};
 
 ExpressionExpect.prototype.evaluate = function(type, value) {
   expect(this.pieces[this.index].type).to.eq(type);
   expect(this.pieces[this.index].value).to.eq(value);
-}
+};
 
 ExpressionExpect.prototype.toBeDirective = function(value) { this.evaluate('directive', value) };
 ExpressionExpect.prototype.toBePlaceholder = function(value) { this.evaluate('placeholder', value) };
