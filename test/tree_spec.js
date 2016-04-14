@@ -51,6 +51,86 @@ describe('Tree Handler', function(){
 
   });
 
+  describe('Path Accessors and Mutators', function(){
+
+    it('can get the value at a simple path', function(){
+
+      var target = {
+        foo: {
+          bar: 11
+        }
+      };
+
+      var actual = tree.getAt(target, [ { field: 'foo' }, { field: 'bar' } ]);
+
+      expect(actual).to.eq(11);
+
+    });
+
+    it('can get the value at an array indexed path', function(){
+
+      var target = {
+        foo: {
+          bar: [
+            'a',
+            { b: 42 }
+          ]
+        }
+      };
+
+      var actual = tree.getAt(target, [ { field: 'foo' }, { field: 'bar' }, { index: 1}, { field: 'b' } ]);
+
+      expect(actual).to.eq(42);
+
+    });
+
+    it('should throw an error if the path is not on the tree', function(){
+
+      expect(function(){ return tree.getAt({ foo: 'bar' }, [ { field: 'nothere' } ]); }).to.throw(Error);
+
+    });
+
+    it('can set the value of a simple path', function(){
+
+      var target = {
+        foo: {
+          bar: 11
+        }
+      };
+
+      tree.setAt(target, [ { field: 'foo' }, { field: 'bar' } ], 22);
+
+      expect(target.foo.bar).to.eq(22);
+
+    });
+
+    it('can set the value of an array indexed path', function(){
+
+      var target = {
+        foo: {
+          bar: [
+            'a',
+            { b: 42 }
+          ]
+        }
+      };
+
+      tree.setAt(target, [ { field: 'foo' }, { field: 'bar' }, { index: 1}, { field: 'b' } ], 'hello');
+
+      expect(target.foo.bar[1].b).to.eq('hello');
+
+    });
+
+    it('should throw an error attempting to set a path that does not exist on the tree', function(){
+
+      expect(function(){
+        tree.setAt({ foo: 'bar' }, [ { field: 'foo' }, { field: 'bar' }, { index: 1}, { field: 'b' } ], 'hello')
+      }).to.throw(Error);
+
+    });
+
+  });
+
   it('processes a deeply nested tree', function(){
 
     var config = {
