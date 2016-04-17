@@ -3,51 +3,12 @@
 var _ = require('lodash'),
     chai = require('chai'),
     expect = chai.expect,
-    GraphBuilder = require('../lib/graph-builder');
+    sinon = require('sinon'),
+    GraphBuilder = require('../lib/graph-builder'),
+    TEST_DATA = require('./data/graph-builder_tree'),
+    TEST_DATA_WITH_DIRECTIVE = require('./data/graph-builder_tree-with-directive');
 
 describe('Graph Builder', function(){
-
-  var TEST_TREE = {
-    foo: 'bar',
-    host: 'localhost',
-    mysql: {
-      port: 3306
-    },
-    pool: {
-      driver: 'mysql',
-      connection: 'mysql://{{host}}:{{mysql.port}}',
-      instances: 10
-    }
-  };
-
-  var TEST_LEAF_METADATA = {
-    type: 'expression',
-    dependencies: {
-      'host': [ { field: 'host' }],
-      'mysql.port': [ { field: 'mysql' }, { field: 'port' } ]
-    },
-    path: [ { field: 'pool' }, { field: 'connection' } ],
-    expression: [
-      { type: 'content', value: 'mysql://' },
-      { type: 'placeholder', value: 'host' },
-      { type: 'content', value: ':' },
-      { type: 'placeholder', value: 'mysql.port' }
-    ]
-  };
-
-  var TEST_METADATA = {
-    errors: [],
-    paths: {
-      'foo':          { type: 'constant', path: [ { field: 'foo' } ] },
-      'host':         { type: 'constant', path: [ { field: 'host' } ]  },
-      'mysql':        { type: 'branch', path: [ { field: 'mysql' } ]  },
-      'mysql.port':   { type: 'constant', path: [ { field: 'mysql' }, { field: 'port' } ]  },
-      'pool':    { type: 'branch', path: [ { field: 'pool' } ]  },
-      'pool.driver':  { type: 'constant', path: [ { field: 'pool' }, { field: 'driver' } ]  },
-      'pool.connection': _.cloneDeep(TEST_LEAF_METADATA),
-      'pool.instances': { type: 'constant', path: [ { field: 'pool' }, { field: 'instances' } ] }
-    }
-  };
 
   it('should join expression content', function(){
 
@@ -115,9 +76,9 @@ describe('Graph Builder', function(){
 
     it('should be able to build a dependency graph for a leaf', function(){
 
-      var leaf = _.cloneDeep(TEST_LEAF_METADATA),
-          tree = _.cloneDeep(TEST_TREE),
-          metadata = _.cloneDeep(TEST_METADATA);
+      var leaf = _.cloneDeep(TEST_DATA.leaf),
+          tree = _.cloneDeep(TEST_DATA.tree),
+          metadata = _.cloneDeep(TEST_DATA.metadata);
 
       var dependencies = GraphBuilder.buildDependenciesForLeaf(tree, metadata, leaf);
 
@@ -136,8 +97,8 @@ describe('Graph Builder', function(){
 
     it('should resolve dependencies for a leaf without a directive', function(){
 
-      var tree = _.cloneDeep(TEST_TREE),
-          metadata = _.cloneDeep(TEST_METADATA);
+      var tree = _.cloneDeep(TEST_DATA.tree),
+          metadata = _.cloneDeep(TEST_DATA.metadata);
 
       var directive = GraphBuilder.resolve('pool.connection', tree, metadata);
 
@@ -148,9 +109,9 @@ describe('Graph Builder', function(){
 
     it('should fill in expression placeholders from resolved dependencies', function(){
 
-      var leaf = _.cloneDeep(TEST_LEAF_METADATA),
-          tree = _.cloneDeep(TEST_TREE),
-          metadata = _.cloneDeep(TEST_METADATA);
+      var leaf = _.cloneDeep(TEST_DATA.leaf),
+          tree = _.cloneDeep(TEST_DATA.tree),
+          metadata = _.cloneDeep(TEST_DATA.metadata);
 
       var actual = GraphBuilder.fillPlaceholders(tree, metadata, leaf);
 
@@ -161,6 +122,125 @@ describe('Graph Builder', function(){
         { type: 'content', value: 3306 }
       ]);
 
+    });
+  });
+
+  describe('Directives', function(){
+
+    it('should process directives found in expressions', function(next){
+
+      var stub = sinon.stub();
+
+      var options = {
+        directives: [
+          {
+            strategy: 'I',
+            handle: stub
+          }
+        ]
+      };
+
+      stub.callsArgWith(3, null, {
+        path: [ { field: 'pool' }, { field: 'connection' } ],
+        value: 'mysql://localhost:3306',
+        resolved: true,
+        directive: 'I'
+      });
+      
+      var tree = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.tree),
+          metadata = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.metadata),
+          graphBuilder = new GraphBuilder(options);
+
+      var directiveContext = {
+        strategy: 'I',
+        context: 'mysql://localhost:3306',
+        path: [ { field: 'pool' }, { field: 'connection' } ]
+      };
+
+      graphBuilder.processDirectives(tree, metadata, [directiveContext], function(err, outcome, unresolvedDirectives){
+
+        expect(stub.called).to.be.true;
+
+        expect(err).to.be.null;
+        expect(outcome).to.eq(GraphBuilder.PassOutcomes.DIRECTIVES_PROCESSED);
+        expect(unresolvedDirectives.length).to.eq(0);
+        next();
+      });
+    });
+
+    it('should requeue directives that could not be resolved during processing', function(next){
+
+      var stub = sinon.stub();
+
+      var options = {
+        directives: [
+          {
+            strategy: 'I',
+            handle: stub
+          }
+        ]
+      };
+
+      stub.callsArgWith(3, null, {
+        path: [ { field: 'pool' }, { field: 'connection' } ],
+        resolved: false,
+        directive: 'I'
+      });
+
+      var tree = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.tree),
+        metadata = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.metadata),
+        graphBuilder = new GraphBuilder(options);
+
+      var directiveContext = {
+        strategy: 'I',
+        context: 'mysql://localhost:3306',
+        path: [ { field: 'pool' }, { field: 'connection' } ]
+      };
+
+      graphBuilder.processDirectives(tree, metadata, [directiveContext], function(err, outcome, unresolvedDirectives){
+
+        expect(stub.called).to.be.true;
+
+        expect(err).to.be.null;
+        expect(outcome).to.eq(GraphBuilder.PassOutcomes.DIRECTIVES_PROCESSED);
+        expect(unresolvedDirectives.length).to.eq(1);
+        next();
+      });
+    });
+
+    it('should terminate early if no directives need to be processed', function(next){
+
+      var stub = sinon.stub();
+
+      var options = {
+        directives: [
+          {
+            strategy: 'I',
+            handle: stub
+          }
+        ]
+      };
+
+      stub.callsArgWith(3, null, {
+        path: [ { field: 'pool' }, { field: 'connection' } ],
+        resolved: false,
+        directive: 'I'
+      });
+
+      var tree = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.tree),
+        metadata = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.metadata),
+        graphBuilder = new GraphBuilder(options);
+
+
+      graphBuilder.processDirectives(tree, metadata, [], function(err, outcome, unresolvedDirectives){
+
+        expect(stub.called).to.be.false;
+
+        expect(err).to.be.null;
+        expect(outcome).to.eq(GraphBuilder.PassOutcomes.NO_DIRECTIVES_PROCESSED);
+        expect(unresolvedDirectives.length).to.eq(0);
+        next();
+      });
     });
 
   });
