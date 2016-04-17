@@ -2,6 +2,8 @@
 
 A declarative, referential configuration framework for Node.js.
 
+![Build Status](https://circleci.com/gh/:owner/:repo.svg?style=shield&circle-token=:circle-token)
+
 ## Example
 
 With a config file like this:
