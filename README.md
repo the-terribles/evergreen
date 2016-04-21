@@ -85,7 +85,7 @@ NODE_ENV=production evergreen config.json --show-tree
 
 ## But Why?
 
-1. I don't want to do a bunch of shit in my application. 
+1. I don't want to do a bunch of extraneous things in my application (like load stores or use a service locator to get config). 
 2. Don't flatten my configuration hierarchy.
 3. Allow me to reuse values declared in my config.
 4. Allow me to specify external sources of configuration.
