@@ -243,6 +243,210 @@ describe('Graph Builder', function(){
       });
     });
 
+    it('should retrieve the correct handler by the directive key', function(){
+
+      var shouldNotBeCalled = sinon.spy(),
+          shouldBeCalled = sinon.spy(),
+          delegateCallback = function(){};
+
+      var options = {
+        directives: [
+          {
+            strategy: 'handler1',
+            handle: shouldNotBeCalled
+          },
+          {
+            strategy: 'handler2',
+            handle: shouldBeCalled
+          }
+        ]
+      };
+
+      var tree = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.tree),
+          metadata = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.metadata),
+          graphBuilder = new GraphBuilder(options),
+          directive = { strategy: 'handler2', context: {}, path: [] };
+
+      var handlerDelegate = graphBuilder.getDirectiveHandler(directive, tree, metadata);
+
+      handlerDelegate(delegateCallback);
+
+      expect(shouldNotBeCalled.called).to.be.false;
+      expect(shouldBeCalled.calledWithExactly(directive, tree, metadata, delegateCallback)).to.be.true;
+    });
+
+    it('should throw an error if no suitable directive is found', function(next){
+
+      var shouldNotBeCalled1 = sinon.spy(),
+          shouldNotBeCalled2 = sinon.spy();
+
+      var options = {
+        directives: [
+          {
+            strategy: 'handler1',
+            handle: shouldNotBeCalled1
+          },
+          {
+            strategy: 'handler2',
+            handle: shouldNotBeCalled2
+          }
+        ]
+      };
+
+      var tree = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.tree),
+          metadata = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.metadata),
+          graphBuilder = new GraphBuilder(options),
+          directive = { strategy: 'handler3', context: {}, path: [] };
+
+      var handlerDelegate = graphBuilder.getDirectiveHandler(directive, tree, metadata);
+
+      handlerDelegate(function(err){
+        expect(shouldNotBeCalled1.called).to.be.false;
+        expect(shouldNotBeCalled2.called).to.be.false;
+        expect(err).to.be.an('error');
+        next();
+      });
+    });
+  });
+
+  describe('Dependency Ordering', function(){
+
+    it('should topologically sort dependencies to ensure the most expedient resolution of the graph', function(){
+
+      var topo = GraphBuilder.buildDependencyGraph({
+        paths: {
+          'foo':          { type: 'constant', path: [ { field: 'foo' } ] },
+          'host':         { type: 'constant', path: [ { field: 'host' } ]  },
+          'hello.world': {
+            type: 'expression',
+            dependencies: {
+              'some.other.leaf': [ { field: 'some' }, { field: 'other' }, { field: 'leaf' }]
+            }
+          },
+          'dependency1': {
+            type: 'expression',
+            dependencies: {
+              'host': [ { field: 'host' }]
+            }
+          },
+          'some.other.leaf': {
+            type: 'expression',
+            dependencies: {
+              'dependency1': [ { field: 'dependency1' }]
+            }
+          }
+        }
+      });
+
+      expect(topo.nodes).to.deep.eq(['dependency1', 'some.other.leaf', 'hello.world']);
+    });
+
+    it('should throw an error if there is a cyclic dependency in the graph', function(){
+
+      var metadata = {
+        paths: {
+          'foo':          { type: 'constant', path: [ { field: 'foo' } ] },
+          'host':         { type: 'constant', path: [ { field: 'host' } ]  },
+          'dependency1': {
+            type: 'expression',
+            dependencies: {
+              'some.other.leaf': [ { field: 'some' }, { field: 'other' }, { field: 'leaf' }]
+            }
+          },
+          'some.other.leaf': {
+            type: 'expression',
+            dependencies: {
+              'dependency1': [ { field: 'dependency1' }]
+            }
+          }
+        }
+      };
+
+      expect(function(){
+
+        GraphBuilder.buildDependencyGraph(metadata);
+
+      }).to.throw(Error);
+    });
+  });
+
+  describe('Tree Processing', function(){
+
+    it('should return an error if the dependencies are cyclic', function(next){
+
+      var graphBuilder = new GraphBuilder();
+
+      var tree = {
+        "foo": "hello/{{bar}}",
+        "bar": "hello/{{foo}}"
+      };
+
+      graphBuilder.processTree(tree, function(err){
+        expect(err).to.be.an('error');
+        next();
+      });
+    });
+
+    it('should process a configuration tree rendering a configuration object', function(next){
+
+      var graphBuilder = new GraphBuilder();
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}'
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.null;
+        expect(config).to.deep.eq({
+          foo: 'world',
+          bar: 'hello world'
+        });
+        next();
+      });
+    });
+
+    it('should handled nested dependencies when rendering the configuration object', function(next){
+
+      var graphBuilder = new GraphBuilder();
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}',
+        foobar: 'hello, hello, {{bar}}',
+        branch: {
+          leaf: 1234
+        },
+        yep: {
+          nope: {
+            huh: '{{foobar}} - {{branch.leaf}}'
+          }
+        }
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.null;
+        expect(config).to.deep.eq({
+          foo: 'world',
+          bar: 'hello world',
+          foobar: 'hello, hello, hello world',
+          branch: {
+            leaf: 1234
+          },
+          yep: {
+            nope: {
+              huh: 'hello, hello, hello world - 1234'
+            }
+          }
+        });
+        
+        next();
+      });
+    });
+
+
+    it.skip('should terminate if the configuration tree cannot be rendered after too many iterations - processTree', function(){});
+
   });
 
 });
