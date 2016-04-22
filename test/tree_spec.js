@@ -184,8 +184,6 @@ describe('Tree Handler', function(){
     }).to.throw(errors.TreeNotObjectError);
   });
 
-  it.skip('appends prefixes to the root of the tree', function(){});
-
   it('processes a deeply nested tree', function(){
 
     var config = {
