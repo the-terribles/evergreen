@@ -79,9 +79,10 @@ describe('Graph Builder', function(){
 
       var leaf = _.cloneDeep(TEST_DATA.leaf),
           tree = _.cloneDeep(TEST_DATA.tree),
-          metadata = _.cloneDeep(TEST_DATA.metadata);
+          metadata = _.cloneDeep(TEST_DATA.metadata),
+          graphBuilder = new GraphBuilder();
 
-      var dependencies = GraphBuilder.buildDependenciesForLeaf(tree, metadata, leaf);
+      var dependencies = graphBuilder.buildDependenciesForLeaf(tree, metadata, leaf);
 
       expect(dependencies).to.deep.eq({
         'host': {
@@ -99,9 +100,10 @@ describe('Graph Builder', function(){
     it ('should mark dependencies it cannot find in the tree as "unresolved"', function(){
 
       var tree = _.cloneDeep(TEST_DATA.tree),
-          metadata = _.cloneDeep(TEST_DATA.metadata);
+          metadata = _.cloneDeep(TEST_DATA.metadata),
+          graphBuilder = new GraphBuilder();
 
-      var dependencies = GraphBuilder.buildDependenciesForLeaf(tree, metadata, {
+      var dependencies = graphBuilder.buildDependenciesForLeaf(tree, metadata, {
         type: 'expression',
         dependencies: {
           'host': [ { field: 'host' }],
@@ -125,9 +127,10 @@ describe('Graph Builder', function(){
     it('should resolve dependencies for a leaf without a directive', function(){
 
       var tree = _.cloneDeep(TEST_DATA.tree),
-          metadata = _.cloneDeep(TEST_DATA.metadata);
+          metadata = _.cloneDeep(TEST_DATA.metadata),
+          graphBuilder = new GraphBuilder();
 
-      var directive = GraphBuilder.resolve('pool.connection', tree, metadata);
+      var directive = graphBuilder.resolve('pool.connection', tree, metadata);
 
       expect(tree.pool.connection).to.eq('mysql://localhost:3306');
 
@@ -138,9 +141,10 @@ describe('Graph Builder', function(){
 
       var leaf = _.cloneDeep(TEST_DATA.leaf),
           tree = _.cloneDeep(TEST_DATA.tree),
-          metadata = _.cloneDeep(TEST_DATA.metadata);
+          metadata = _.cloneDeep(TEST_DATA.metadata),
+          graphBuilder = new GraphBuilder();
 
-      var actual = GraphBuilder.fillPlaceholders(tree, metadata, leaf);
+      var actual = graphBuilder.fillPlaceholders(tree, metadata, leaf);
 
       expect(actual).to.deep.equal([
         { type: 'content', value: 'mysql://' },
@@ -649,6 +653,84 @@ describe('Graph Builder', function(){
         expect(err).to.be.an.instanceOf(errors.DependenciesNotResolvedError);
         next();
       });
+    });
+
+    it('should find nodes (branches or leaves) in the tree using a number of strategies', function(){
+
+      var tree = {
+        foo: {
+          bar: {
+            hello: {
+              world: 'goodbye'
+            }
+          }
+        },
+        meaning: {
+          of: {
+            life: [42]
+          },
+          coffee: [
+            {
+              yum: 'yes'
+            },
+            {
+              awake: true
+            }
+          ]
+        }
+      };
+
+      process.env.ENV_VAR_TEST_FOR_GRAPH_BUILDER = 1234;
+
+      var graphBuilder = new GraphBuilder();
+
+      var value = graphBuilder.resolveNodeAtPath(
+        tree,
+        'foo.bar.hello.world',
+        [{field:'foo'},{field:'bar'},{field:'hello'},{field:'world'}],
+        '',
+        []);
+
+      expect(value).to.eq('goodbye');
+
+      value = graphBuilder.resolveNodeAtPath(
+        tree,
+        'hello.world',
+        [{field:'hello'},{field:'world'}],
+        'foo.bar',
+        [{field:'foo'},{field:'bar'}]);
+
+      expect(value).to.eq('goodbye');
+
+      value = graphBuilder.resolveNodeAtPath(
+        tree,
+        'meaning.coffee[0].yum',
+        [{field:'meaning'},{field:'coffee'}, {index:0},{field:'yum'}],
+        '',
+        []);
+
+      expect(value).to.eq('yes');
+
+      value = graphBuilder.resolveNodeAtPath(
+        tree,
+        'coffee[0].yum',
+        [{field:'coffee'},{index:0},{field:'yum'}],
+        'meaning',
+        [{field:'meaning'}]);
+
+      expect(value).to.eq('yes');
+
+
+
+      value = graphBuilder.resolveNodeAtPath(
+        tree,
+        'env.ENV_VAR_TEST_FOR_GRAPH_BUILDER',
+        [{field:'env'},{field:'ENV_VAR_TEST_FOR_GRAPH_BUILDER'}],
+        '',
+        []);
+
+      expect(value).to.eq(1234);
+
     });
   });
 

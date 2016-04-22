@@ -6,7 +6,7 @@
   "scripts": {
     "peg:generate": "node_modules/.bin/pegjs lib/grammar.pegjs lib/generated/grammar.js",
     "test": "./node_modules/.bin/mocha test --recursive",
-    "coverage": "./node_modules/.bin/istanbul cover node_modules/.bin/_mocha test --recursive"
+    "coverage": "./node_modules/.bin/istanbul cover node_modules/.bin/_mocha -- test --recursive"
   },
   "repository": {
     "type": "git",

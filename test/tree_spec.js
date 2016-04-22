@@ -163,6 +163,44 @@ describe('Tree Handler', function(){
         tree.assertSubpathValid(['hello'], 'hello')
       }).to.throw(errors.InvalidPathError);
     });
+
+    it('should determine if a subpath is a field', function(){
+
+      expect(tree.isField()).to.be.false;
+
+      expect(tree.isField({ field: 42 })).to.be.false;
+      expect(tree.isField({ index: 12 })).to.be.false;
+      expect(tree.isField({ field: true })).to.be.false;
+      expect(tree.isField({ field: [] })).to.be.false;
+      expect(tree.isField({ field: {} })).to.be.false;
+      expect(tree.isField('blah')).to.be.false;
+
+      expect(tree.isField({ field: 'hello' })).to.be.true;
+    });
+
+    it('should determine if a subpath is an array index', function(){
+
+      expect(tree.isIndex()).to.be.false;
+      expect(tree.isIndex({ field: 'hello' })).to.be.false;
+      expect(tree.isIndex({ index: false })).to.be.false;
+      expect(tree.isIndex({ index: '12' })).to.be.false;
+      expect(tree.isIndex({ index: -1 })).to.be.false;
+      expect(tree.isIndex({ index: 1.2 })).to.be.false;
+      expect(tree.isIndex({ index: [] })).to.be.false;
+      expect(tree.isIndex({ index: {} })).to.be.false;
+      expect(tree.isIndex('blah')).to.be.false;
+
+      expect(tree.isIndex({ index: 12 })).to.be.true;
+    });
+
+    it('should determine if a subpath is a field with the inquired name', function(){
+
+      expect(tree.isNamedField({ field: 'hello' }, 'blah')).to.be.false;
+      expect(tree.isNamedField({ index: 12 }, 'blah')).to.be.false;
+      expect(tree.isNamedField('blah', 'blah')).to.be.false;
+      expect(tree.isNamedField({ field: 'blah' }, 'blah')).to.be.true;
+
+    });
   });
 
   it('throws an error if the supplied tree is not an object', function(){
