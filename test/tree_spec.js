@@ -3,6 +3,7 @@
 var _ = require('lodash'),
     chai = require('chai'),
     expect = chai.expect,
+    errors = require('../lib/errors'),
     tree = require('../lib/tree');
 
 describe('Tree Handler', function(){
@@ -86,7 +87,7 @@ describe('Tree Handler', function(){
 
     it('should throw an error if the path is not on the tree', function(){
 
-      expect(function(){ return tree.getAt({ foo: 'bar' }, [ { field: 'nothere' } ]); }).to.throw(Error);
+      expect(function(){ return tree.getAt({ foo: 'bar' }, [ { field: 'nothere' } ]); }).to.throw(errors.PathNotFoundError);
 
     });
 
@@ -125,11 +126,65 @@ describe('Tree Handler', function(){
 
       expect(function(){
         tree.setAt({ foo: 'bar' }, [ { field: 'foo' }, { field: 'bar' }, { index: 1}, { field: 'b' } ], 'hello')
-      }).to.throw(Error);
+      }).to.throw(errors.PathNotFoundError);
 
     });
+    
+    it('should thrown an error attempting to set an invalid path', function(){
+      
+      expect(function(){
+        tree.setAt({ foo: 'bar' }, [ { honeybooboo: 'foo' }, { index: 1}, { field: 'b' } ], 'hello')
+      }).to.throw(errors.InvalidPathError);
 
+      expect(function(){
+        tree.setAt({ foo: 'bar' }, [ 'saywhat?', { index: 1}, { field: 'b' } ], 'hello')
+      }).to.throw(errors.InvalidPathError);
+
+      expect(function(){
+        tree.setAt({ foo: 'bar' }, 'honeybooboo say what?', 'hello')
+      }).to.throw(errors.InvalidPathError);
+    });
+
+    it('should validate array subpath schema', function(){
+
+      expect(function(){
+        tree.assertSubpathValid([{}], {})
+      }).to.throw(errors.InvalidPathError);
+
+      expect(function(){
+        tree.assertSubpathValid([{ field: 'blah', index: 0 }], { field: 'blah', index: 0 })
+      }).to.throw(errors.InvalidPathError);
+
+      expect(function(){
+        tree.assertSubpathValid([{ huh: true }], { huh: true })
+      }).to.throw(errors.InvalidPathError);
+
+      expect(function(){
+        tree.assertSubpathValid(['hello'], 'hello')
+      }).to.throw(errors.InvalidPathError);
+    });
   });
+
+  it('throws an error if the supplied tree is not an object', function(){
+
+    expect(function(){
+      tree.evaluate(['hey', 'I', 'am', 'not', 'an', 'object'])
+    }).to.throw(errors.TreeNotObjectError);
+
+    expect(function(){
+      tree.evaluate('neither am I')
+    }).to.throw(errors.TreeNotObjectError);
+
+    expect(function(){
+      tree.evaluate(true)
+    }).to.throw(errors.TreeNotObjectError);
+
+    expect(function(){
+      tree.evaluate(42)
+    }).to.throw(errors.TreeNotObjectError);
+  });
+
+  it.skip('appends prefixes to the root of the tree', function(){});
 
   it('processes a deeply nested tree', function(){
 

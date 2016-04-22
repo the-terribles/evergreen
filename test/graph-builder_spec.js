@@ -4,6 +4,7 @@ var _ = require('lodash'),
     chai = require('chai'),
     expect = chai.expect,
     sinon = require('sinon'),
+    errors = require('../lib/errors'),
     GraphBuilder = require('../lib/graph-builder'),
     TEST_DATA = require('./data/graph-builder_tree'),
     TEST_DATA_WITH_DIRECTIVE = require('./data/graph-builder_tree-with-directive');
@@ -70,7 +71,7 @@ describe('Graph Builder', function(){
           'foo.bar': { metadata: { type: 'constant' } },
           'bar.foo': { metadata: { type: 'branch' } }
         });
-      }).to.throw(Error);
+      }).to.throw(errors.PlaceholderResolvesToBranchError);
 
     });
 
@@ -90,6 +91,32 @@ describe('Graph Builder', function(){
         'mysql.port': {
           value: 3306,
           metadata: { type: 'constant', path: [ { field: 'mysql' }, { field: 'port' } ]  }
+        }
+      });
+
+    });
+
+    it ('should mark dependencies it cannot find in the tree as "unresolved"', function(){
+
+      var tree = _.cloneDeep(TEST_DATA.tree),
+          metadata = _.cloneDeep(TEST_DATA.metadata);
+
+      var dependencies = GraphBuilder.buildDependenciesForLeaf(tree, metadata, {
+        type: 'expression',
+        dependencies: {
+          'host': [ { field: 'host' }],
+          'should.not.exist': [ { field: 'should' }, { field: 'not' }, { field: 'exist' } ]
+        },
+        path: [ { field: 'pool' }, { field: 'connection' } ]
+      });
+
+      expect(dependencies).to.deep.eq({
+        'host': {
+          value: 'localhost',
+          metadata: { type: 'constant', path: [ { field: 'host' } ]  }
+        },
+        'should.not.exist': {
+          metadata: { type: 'unresolved' }
         }
       });
 
@@ -303,7 +330,7 @@ describe('Graph Builder', function(){
       handlerDelegate(function(err){
         expect(shouldNotBeCalled1.called).to.be.false;
         expect(shouldNotBeCalled2.called).to.be.false;
-        expect(err).to.be.an('error');
+        expect(err).to.be.an.instanceOf(errors.DirectiveHandlerNotFoundError);
         next();
       });
     });
@@ -382,7 +409,7 @@ describe('Graph Builder', function(){
       };
 
       graphBuilder.processTree(tree, function(err){
-        expect(err).to.be.an('error');
+        expect(err).to.be.an.instanceOf(errors.CannotBuildDependencyGraphError);
         next();
       });
     });
@@ -471,7 +498,7 @@ describe('Graph Builder', function(){
         },
         yep: {
           nope: {
-            huh: '$eval::2 + 2'
+            huh: '$eval::{{branch.leaf}} + 2'
           }
         }
       };
@@ -487,7 +514,7 @@ describe('Graph Builder', function(){
           },
           yep: {
             nope: {
-              huh: 4
+              huh: 1236
             }
           }
         });
@@ -496,10 +523,133 @@ describe('Graph Builder', function(){
       });
     });
 
-    it.skip('should return an error if the graph has not been resolved and no more directives will be run', function(next){
+    it('should return an error if the graph has not been resolved and no more directives will be run', function(next){
 
+      var graphBuilder = new GraphBuilder({
+        directives: [
+          {
+            strategy: 'eval',
+            handle: function(directive, tree, metadata, callback){
+              callback(null, {
+                directive: directive,
+                path: directive.path,
+                resolved: true,
+                value: directive.context
+              })
+            }
+          }
+        ]
+      });
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}',
+        foobar: 'hello, hello, {{bar}}',
+        branch: {
+          leaf: 1234
+        },
+        yep: {
+          nope: {
+            huh: '$eval::{{some.other.leaf}} + 2'
+          }
+        }
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.an.instanceOf(errors.DependenciesNotResolvedError);
+        next();
+      });
     });
 
+    it('should resolve placeholders returned from directives', function(next){
+
+      var graphBuilder = new GraphBuilder({
+        directives: [
+          {
+            strategy: 'confuser',
+            handle: function(directive, tree, metadata, callback){
+              callback(null, {
+                directive: directive,
+                path: directive.path,
+                resolved: true,
+                value: '{{foo}} ' + directive.context
+              })
+            }
+          }
+        ]
+      });
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}',
+        foobar: 'hello, hello, {{bar}}',
+        branch: {
+          leaf: 1234
+        },
+        yep: {
+          nope: {
+            huh: '$confuser::{{bar}}'
+          }
+        }
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.null;
+        expect(config).to.deep.eq({
+          foo: 'world',
+          bar: 'hello world',
+          foobar: 'hello, hello, hello world',
+          branch: {
+            leaf: 1234
+          },
+          yep: {
+            nope: {
+              huh: 'world hello world'
+            }
+          }
+        });
+
+        next();
+      });
+    });
+
+    it('should fail if a placeholders returned from a directive cannot be resolved', function(next){
+
+      var graphBuilder = new GraphBuilder({
+        directives: [
+          {
+            strategy: 'confounder',
+            handle: function(directive, tree, metadata, callback){
+              callback(null, {
+                directive: directive,
+                path: directive.path,
+                resolved: true,
+                value: '{{yeah.baby}}'
+              })
+            }
+          }
+        ]
+      });
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}',
+        foobar: 'hello, hello, {{bar}}',
+        branch: {
+          leaf: 1234
+        },
+        yep: {
+          nope: {
+            huh: '$confounder::hey return something that will not resolve please!'
+          }
+        }
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.an.instanceOf(errors.DependenciesNotResolvedError);
+        next();
+      });
+    });
   });
 
 });
