@@ -27,7 +27,7 @@ describe('Graph Builder', function(){
   it('should retrieve directives from expressions', function(){
 
     var expression = [
-      { type: 'directive', value: '$ref' },
+      { type: 'directive', value: 'ref' },
       { type: 'content', value: 'foo.bar' }
     ];
 
@@ -439,13 +439,66 @@ describe('Graph Builder', function(){
             }
           }
         });
-        
+
         next();
       });
     });
 
+    it('should resolve leafs using directives', function(next){
 
-    it.skip('should terminate if the configuration tree cannot be rendered after too many iterations - processTree', function(){});
+      var graphBuilder = new GraphBuilder({
+        directives: [
+          {
+            strategy: 'eval',
+            handle: function(directive, tree, metadata, callback){
+              callback(null, {
+                directive: directive,
+                path: directive.path,
+                resolved: true,
+                value: eval(directive.context)
+              })
+            }
+          }
+        ]
+      });
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}',
+        foobar: 'hello, hello, {{bar}}',
+        branch: {
+          leaf: 1234
+        },
+        yep: {
+          nope: {
+            huh: '$eval::2 + 2'
+          }
+        }
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.null;
+        expect(config).to.deep.eq({
+          foo: 'world',
+          bar: 'hello world',
+          foobar: 'hello, hello, hello world',
+          branch: {
+            leaf: 1234
+          },
+          yep: {
+            nope: {
+              huh: 4
+            }
+          }
+        });
+
+        next();
+      });
+    });
+
+    it.skip('should return an error if the graph has not been resolved and no more directives will be run', function(next){
+
+    });
 
   });
 
