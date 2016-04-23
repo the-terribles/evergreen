@@ -482,12 +482,7 @@ describe('Graph Builder', function(){
           {
             strategy: 'eval',
             handle: function(directive, tree, metadata, callback){
-              callback(null, {
-                directive: directive,
-                path: directive.path,
-                resolved: true,
-                value: eval(directive.context)
-              })
+              callback(null, directive.resolve(eval(directive.expression)));
             }
           }
         ]
@@ -572,12 +567,7 @@ describe('Graph Builder', function(){
           {
             strategy: 'confuser',
             handle: function(directive, tree, metadata, callback){
-              callback(null, {
-                directive: directive,
-                path: directive.path,
-                resolved: true,
-                value: '{{foo}} ' + directive.context
-              })
+              callback(null, directive.resolve('{{foo}} ' + directive.expression));
             }
           }
         ]
