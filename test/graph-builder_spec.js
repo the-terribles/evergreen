@@ -722,6 +722,40 @@ describe('Graph Builder', function(){
       expect(value).to.eq(1234);
 
     });
+
+    it('should stop tree processing if an error is returned by a directive', function(next){
+
+      var graphBuilder = new GraphBuilder({
+        directives: [
+          {
+            strategy: 'errorer',
+            handle: function(directive, tree, metadata, callback){
+              callback(new Error(directive.expression));
+            }
+          }
+        ]
+      });
+
+      var tree = {
+        foo: 'world',
+        bar: 'hello {{foo}}',
+        foobar: 'hello, hello, {{bar}}',
+        branch: {
+          leaf: 1234
+        },
+        yep: {
+          nope: {
+            huh: '$errorer::you shall not pass!!!!'
+          }
+        }
+      };
+
+      graphBuilder.processTree(tree, function(err, config){
+        expect(err).to.be.an('error');
+        next();
+      });
+
+    });
   });
 
 });
