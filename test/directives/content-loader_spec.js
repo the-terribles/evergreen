@@ -1,12 +1,13 @@
 'use strict';
 
 var _ = require('lodash'),
-  chai = require('chai'),
-  sinon = require('sinon'),
-  expect = chai.expect,
-  errors = require('../../lib/errors'),
-  ContentLoader = require('../../lib/directives/content-loader'),
-  DirectiveContext = require('../../lib/directive-context');
+    util = require('util'),
+    chai = require('chai'),
+    sinon = require('sinon'),
+    expect = chai.expect,
+    errors = require('../../lib/errors'),
+    ContentLoader = require('../../lib/directives/content-loader'),
+    DirectiveContext = require('../../lib/directive-context');
 
 describe('Directives', function(){
 
@@ -17,8 +18,7 @@ describe('Directives', function(){
       this.load = loadFn;
     };
 
-    TestContentLoader.prototype = Object.create(ContentLoader.prototype);
-    TestContentLoader.prototype.constructor = TestContentLoader;
+    util.inherits(TestContentLoader, ContentLoader);
 
     it('should pass the expression to the source provider', function(next){
 
