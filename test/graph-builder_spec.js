@@ -497,7 +497,7 @@ describe('Graph Builder', function(){
         },
         yep: {
           nope: {
-            huh: '$eval::{{branch.leaf}} + 2'
+            huh: '$eval:{{branch.leaf}} + 2'
           }
         }
       };
@@ -549,7 +549,7 @@ describe('Graph Builder', function(){
         },
         yep: {
           nope: {
-            huh: '$eval::{{some.other.leaf}} + 2'
+            huh: '$eval:{{some.other.leaf}} + 2'
           }
         }
       };
@@ -582,7 +582,7 @@ describe('Graph Builder', function(){
         },
         yep: {
           nope: {
-            huh: '$confuser::{{bar}}'
+            huh: '$confuser:{{bar}}'
           }
         }
       };
@@ -634,7 +634,7 @@ describe('Graph Builder', function(){
         },
         yep: {
           nope: {
-            huh: '$confounder::hey return something that will not resolve please!'
+            huh: '$confounder:hey return something that will not resolve please!'
           }
         }
       };
@@ -745,7 +745,7 @@ describe('Graph Builder', function(){
         },
         yep: {
           nope: {
-            huh: '$errorer::you shall not pass!!!!'
+            huh: '$errorer:you shall not pass!!!!'
           }
         }
       };

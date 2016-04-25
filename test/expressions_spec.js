@@ -33,14 +33,14 @@ describe('Expressions Handler', function(){
 
     it('should parse directives if they are at the beginning of the expression', function(){
 
-      var pieces = parse('$ref::root.branch.leaf');
+      var pieces = parse('$ref:root.branch.leaf');
 
       expect(pieces.length).to.eq(2);
 
       expectExpression(pieces).at(0).toBeDirective('ref');
       expectExpression(pieces).at(1).toBeContent('root.branch.leaf');
 
-      pieces = parse('$ref::root.{{env.NODE_ENV}}.leaf');
+      pieces = parse('$ref:root.{{env.NODE_ENV}}.leaf');
 
       expect(pieces.length).to.eq(4);
 
