@@ -4,6 +4,7 @@ var _ = require('lodash'),
   chai = require('chai'),
   sinon = require('sinon'),
   expect = chai.expect,
+  errors = require('../../lib/errors'),
   ContentLoader = require('../../lib/directives/content-loader'),
   DirectiveContext = require('../../lib/directive-context');
 
@@ -24,7 +25,7 @@ describe('Directives', function(){
       var context = new DirectiveContext('test-content-loader', './asdf/asdf', []),
          contentLoader = new TestContentLoader(function(expression, callback){
            expect(expression).to.eq('./asdf/asdf');
-           callback(null, 'content from file');
+           callback(null, 'text/plain', 'content from file');
          });
 
       contentLoader.handle(context, {}, {}, next);
@@ -45,30 +46,13 @@ describe('Directives', function(){
       });
     });
 
-    it('should not parse the source content if the noParse flag is set', function(next){
-
-      var stub = sinon.stub(),
-          contentLoader = new TestContentLoader(stub),
-          context = new DirectiveContext('test-content-loader', './asdf/asdf', []);
-
-      stub.callsArgWith(1, null, '{ "foo": "bar" }', true);
-
-      contentLoader.handle(context, {}, {}, function(err, returnedContext){
-        expect(err).to.be.null;
-        expect(stub.called).to.be.true;
-        expect(returnedContext).to.eq(context);
-        expect(returnedContext.value).to.eq('{ "foo": "bar" }');
-        next();
-      });
-    });
-
     it('should not parse the source content if the content is not a string', function(next){
 
       var stub = sinon.stub(),
         contentLoader = new TestContentLoader(stub),
         context = new DirectiveContext('test-content-loader', './asdf/asdf', []);
 
-      stub.callsArgWith(1, null, { foo: "bar" });
+      stub.callsArgWith(1, null, 'application/javascript', { foo: "bar" });
 
       contentLoader.handle(context, {}, {}, function(err, returnedContext){
         expect(err).to.be.null;
@@ -85,7 +69,7 @@ describe('Directives', function(){
         contentLoader = new TestContentLoader(stub),
         context = new DirectiveContext('test-content-loader', './asdf/asdf', []);
 
-      stub.callsArgWith(1, null, '{ "foo": "bar" }');
+      stub.callsArgWith(1, null, 'application/json', '{ "foo": "bar" }');
 
       contentLoader.handle(context, {}, {}, function(err, returnedContext){
         expect(err).to.be.null;
@@ -96,19 +80,16 @@ describe('Directives', function(){
       });
     });
 
-    it('should return the original content if it\'s not a valid JSON string', function(next){
+    it('should return throw an error if the content-type is application/json and it is unparsable', function(next){
 
       var stub = sinon.stub(),
         contentLoader = new TestContentLoader(stub),
         context = new DirectiveContext('test-content-loader', './asdf/asdf', []);
 
-      stub.callsArgWith(1, null, 'this should not be parsable');
+      stub.callsArgWith(1, null, 'application/json', 'this should not be parsable');
 
       contentLoader.handle(context, {}, {}, function(err, returnedContext){
-        expect(err).to.be.null;
-        expect(stub.called).to.be.true;
-        expect(returnedContext).to.eq(context);
-        expect(returnedContext.value).to.eq('this should not be parsable');
+        expect(err).to.be.an.instanceOf(errors.JSONParseError)
         next();
       });
     });

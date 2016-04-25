@@ -16,7 +16,7 @@ describe('Directives', function() {
     it('should return an executed JavaScript file', function(next){
 
       var requireLoader = new RequireLoader(),
-        context = new DirectiveContext('file', Path.join(__dirname, './data/file-test.js'), []);
+          context = new DirectiveContext('file', Path.join(__dirname, './data/file-test.js'), []);
 
       requireLoader.handle(context, {}, {}, function(err, _context){
         expect(err).to.be.null;
