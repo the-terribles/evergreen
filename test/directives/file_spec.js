@@ -6,7 +6,7 @@ var _ = require('lodash'),
     Path = require('path'),
     errors = require('../../lib/errors'),
     expect = chai.expect,
-    FileLoader = require('../../lib/directives/file'),
+    FileContentLoader = require('../../lib/directives/file'),
     DirectiveContext = require('../../lib/directive-context');
 
 describe('Directives', function() {
@@ -15,7 +15,7 @@ describe('Directives', function() {
 
     it('should return an error if the file is not found', function(next){
 
-      var fileLoader = new FileLoader(),
+      var fileLoader = new FileContentLoader(),
           context = new DirectiveContext('file', Path.join(__dirname, './data/file-test.notfound'), []);
 
       fileLoader.handle(context, {}, {}, function(err){
@@ -26,7 +26,7 @@ describe('Directives', function() {
 
     it('should return the contents of the file', function(next){
 
-      var fileLoader = new FileLoader(),
+      var fileLoader = new FileContentLoader(),
           context = new DirectiveContext('file', Path.join(__dirname, './data/file-test.txt'), []);
 
       fileLoader.handle(context, {}, {}, function(err, _context){
@@ -38,7 +38,7 @@ describe('Directives', function() {
 
     it('should return parsed contents of the file if JSON', function(next){
 
-      var fileLoader = new FileLoader(),
+      var fileLoader = new FileContentLoader(),
         context = new DirectiveContext('file', Path.join(__dirname, './data/file-test.json'), []);
 
       fileLoader.handle(context, {}, {}, function(err, _context){
@@ -62,7 +62,7 @@ describe('Directives', function() {
 
     it('should not cause an error if the file is not text-based', function(next){
 
-      var fileLoader = new FileLoader(),
+      var fileLoader = new FileContentLoader(),
         context = new DirectiveContext('file', Path.join(__dirname, './data/file-test.png'), []);
 
       fileLoader.handle(context, {}, {}, function(err, _context){

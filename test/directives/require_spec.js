@@ -11,7 +11,7 @@ var _ = require('lodash'),
 
 describe('Directives', function() {
 
-  describe('RequireContentLoaded', function () {
+  describe('RequireContentLoader', function () {
 
     it('should return an executed JavaScript file', function(next){
 
