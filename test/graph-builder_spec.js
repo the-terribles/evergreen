@@ -82,7 +82,7 @@ describe('Graph Builder', function(){
           metadata = _.cloneDeep(TEST_DATA.metadata),
           graphBuilder = new GraphBuilder();
 
-      var dependencies = graphBuilder.buildDependenciesForLeaf(tree, metadata, leaf);
+      var dependencies = graphBuilder.synchronizeLeafDependencies(tree, metadata, leaf);
 
       expect(dependencies).to.deep.eq({
         'host': {
@@ -103,7 +103,7 @@ describe('Graph Builder', function(){
           metadata = _.cloneDeep(TEST_DATA.metadata),
           graphBuilder = new GraphBuilder();
 
-      var dependencies = graphBuilder.buildDependenciesForLeaf(tree, metadata, {
+      var dependencies = graphBuilder.synchronizeLeafDependencies(tree, metadata, {
         type: 'expression',
         dependencies: {
           'host': [ { field: 'host' }],
@@ -607,7 +607,7 @@ describe('Graph Builder', function(){
       });
     });
 
-    it('should fail if a placeholders returned from a directive cannot be resolved', function(next){
+    it('should fail if placeholders returned from a directive cannot be resolved', function(next){
 
       var graphBuilder = new GraphBuilder({
         directives: [
