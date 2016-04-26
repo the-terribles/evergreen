@@ -1,6 +1,7 @@
 'use strict';
 
 var chai = require('chai'),
+    errors = require('../lib/errors'),
     expect = chai.expect,
     sinon = require('sinon'),
     AssertionError = require('assert').AssertionError,
@@ -80,24 +81,105 @@ describe('Configurator', function(){
     configurator.render(tree);
   });
 
-  it.skip('should allow the addition of resolvers', function(next){
+  it('should allow the addition of resolvers', function(next){
 
+    var resolver = function(tree, path){
+          console.log('Registry touched');
+          if (path === 'registry.abc123') return 'bar';
+        },
+        configurator = new Configurator();
+
+    var tree = {
+      foo: '{{registry.abc123}}'
+    };
+
+    configurator.addResolver({ name: 'registry', order: 10, resolve: resolver });
+
+    configurator.on('ready', function(config){
+
+      expect(config).to.deep.eq({
+        foo: 'bar'
+      });
+
+      next();
+    });
+
+    configurator.render(tree);
   });
 
-  it.skip('should allow the removal of resolvers', function(next){
+  it('should allow the removal of resolvers', function(next){
 
+    var configurator = new Configurator();
+
+    process.env.HERE_IS_ENV_PROP = 42;
+
+    var tree = {
+      blah: '{{env.HERE_IS_ENV_PROP}}',
+      env: 'should be picked up by absolute resolver'
+    };
+
+    configurator.removeResolver('absolute');
+
+    configurator.on('ready', function(config){
+
+      expect(config).to.deep.eq({
+        blah: '42',
+        env: 'should be picked up by absolute resolver'
+      });
+
+      next();
+    });
+
+    configurator.render(tree);
   });
 
-  it.skip('should allow the addition of directives', function(next){
+  it('should allow the addition of directives', function(next){
 
+    var configurator = new Configurator();
+
+    var tree = {
+      foo: '$hello:richard'
+    };
+
+    configurator.addDirective({
+      strategy: 'hello',
+      handle: function(context, tree, metadata, callback){
+        return callback(null, context.resolve('hello ' + context.expression));
+      }
+    });
+
+    configurator.on('ready', function(config){
+
+      expect(config).to.deep.eq({
+        foo: 'hello richard'
+      });
+
+      next();
+    });
+
+    configurator.render(tree);
   });
 
-  it.skip('should allow the removal of directives', function(next){
+  it('should allow the removal of directives', function(next){
 
+    var configurator = new Configurator();
+
+    var tree = {
+      foo: '$file:./data/blah'
+    };
+
+    configurator.removeDirective('file');
+
+    configurator.on('error', function(err){
+      expect(err).to.be.an.instanceOf(errors.DirectiveHandlerNotFoundError);
+      next();
+    });
+
+    configurator.render(tree);
   });
 
   it.skip('should allow the addition of modules', function(next){
-
+    
   });
 
   it.skip('should allow the addition of multiple modules in one call', function(next){
