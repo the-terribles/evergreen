@@ -1,6 +1,6 @@
 {
   "name": "trbl-evergreen",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Refreshing take on Node Configuration",
   "main": "index.js",
   "scripts": {
