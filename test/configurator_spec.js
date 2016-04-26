@@ -1,13 +1,41 @@
 'use strict';
 
-var chai = require('chai'),
+var _ = require('lodash'),
+    chai = require('chai'),
     errors = require('../lib/errors'),
     expect = chai.expect,
     sinon = require('sinon'),
+    TestUtils = require('./utils'),
     AssertionError = require('assert').AssertionError,
     Configurator = require('../lib/configurator');
 
 describe('Configurator', function(){
+
+  var identityDirective = {
+    strategy: 'i',
+    handle: function(context, tree, metadata, callback){
+      return callback(null, context.resolve(context.expression));
+    }
+  };
+
+  var camelCaseDirective = {
+    strategy: 'camelcase',
+    handle: function(context, tree, metadata, callback){
+      return callback(null, context.resolve(_.camelCase(context.expression)));
+    }
+  };
+
+  var etherResolver = {
+    name: 'ether',
+    order: 5,
+    resolve: function(tree, sympath){ return (sympath.indexOf('ether') === 0)? 'the mists have provided!' : null; }
+  };
+
+  var cthulhuResolver = {
+    name: 'cthulhu',
+    order: 5,
+    resolve: function(tree, sympath){ return (sympath.indexOf('cthulhu') === 0)? 'squiggly tentacles!' : null; }
+  };
 
   it('should load configuration from an object template', function(next){
 
@@ -84,7 +112,6 @@ describe('Configurator', function(){
   it('should allow the addition of resolvers', function(next){
 
     var resolver = function(tree, path){
-          console.log('Registry touched');
           if (path === 'registry.abc123') return 'bar';
         },
         configurator = new Configurator();
@@ -178,11 +205,67 @@ describe('Configurator', function(){
     configurator.render(tree);
   });
 
-  it.skip('should allow the addition of modules', function(next){
-    
+  it('should allow the addition of modules', function(next){
+
+    var configurator = new Configurator();
+
+    var tree = {
+      foo: '$i:richard',
+      mysterious: '{{ether}}'
+    };
+
+    configurator.addModule({
+      resolvers: [ etherResolver ],
+      directives: [ identityDirective ]
+    });
+
+    configurator.on('ready', TestUtils.wrapAsync(next, function(config){
+      expect(config).to.deep.eq({
+        foo: 'richard',
+        mysterious: 'the mists have provided!'
+      });
+    }));
+
+    configurator.render(tree);
+
   });
 
-  it.skip('should allow the addition of multiple modules in one call', function(next){
+  it('should allow the addition of multiple modules in one call', function(next){
+
+    var configurator = new Configurator();
+
+    var tree = {
+      foo: '$i:richard',
+      mysterious: '{{ether}}',
+      other: {
+        cultist: 'I call you great - {{cthulhu}}',
+        camel: '$camelcase:Sprocket fandango bull fighter'
+      }
+    };
+
+    configurator.addModules([
+      {
+        resolvers: [ etherResolver ],
+        directives: [ identityDirective ]
+      },
+      {
+        resolvers: [ cthulhuResolver ],
+        directives: [ camelCaseDirective ]
+      }
+    ]);
+
+    configurator.on('ready', TestUtils.wrapAsync(next, function(config){
+      expect(config).to.deep.eq({
+        foo: 'richard',
+        mysterious: 'the mists have provided!',
+        other: {
+          cultist: 'I call you great - squiggly tentacles!',
+          camel: 'sprocketFandangoBullFighter'
+        }
+      });
+    }));
+
+    configurator.render(tree);
 
   });
 
