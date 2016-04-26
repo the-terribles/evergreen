@@ -119,7 +119,7 @@ And to use it, completely unobtrusively in your application, just import the dep
 'use strict';
  
 // At this point, config is just a plain old JavaScript object.
-let config = require('evergreen').config;
+let config = require('trbl-evergreen').config;
  
 let _ = require('lodash'),
     Hapi = require('hapi'),
