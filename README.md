@@ -105,7 +105,7 @@ You should get an object graph like this:
 To obtain that graph, you should simply need to:
 
 ```javascript
-let evergreen = require('evergreen')
+let evergreen = require('trbl-evergreen')
                   .renderFile('config.json')
                   .andRequire('./server.json');
 
