@@ -380,36 +380,123 @@ describe('Configurator', function(){
 
   describe('Returning the configuration', function(){
 
-    it.skip('should have a method to test to see if the configuration is ready', function(){
 
+    it('should have a method to test to see if the configuration is ready', function(next){
+
+      var configurator = new Configurator();
+
+      expect(configurator.isReady()).to.be.false;
+
+      configurator.on('ready', TestUtils.wrapAsync(next, function(config){
+
+        expect(configurator.isReady()).to.be.true;
+      }));
+
+      configurator.render({ foo: 'bar', hello: '{{foo}}' });
     });
 
-    it.skip('should have a method to retrieve the configuration if it is ready', function(){
 
+    it('should have a method to retrieve the configuration if it is ready', function(next){
+
+      var configurator = new Configurator();
+
+      configurator.on('ready', TestUtils.wrapAsync(next, function(config){
+
+        expect(configurator.config()).to.deep.eq({
+          foo: 'bar',
+          hello: 'bar'
+        });
+      }));
+
+      configurator.render({ foo: 'bar', hello: '{{foo}}' });
     });
 
-    it.skip('should throw an error if an attempt to retrieve configuration is made when it is not ready', function(){
 
+    it('should throw an error if an attempt to retrieve configuration is made when it is not ready', function(){
+
+      var configurator = new Configurator();
+
+      expect(function(){ configurator.config(); }).to.throw(AssertionError);
     });
+
 
     describe('Require a JavaScript file on Load', function(){
 
-      it.skip('should allow a file to be required when the configuration is ready', function(next){
 
+      it('should allow a file to be required when the configuration is ready', function(next){
+
+        var configurator = new Configurator(),
+            spy = sinon.spy(),
+            file = './server.js';
+
+        configurator.__requireFile = spy;
+
+        configurator
+          .render({ foo: 'bar', hello: '{{foo}}' })
+          .andRequire(file);
+
+        configurator.on('ready', function(){
+          // We're going to wait for all the other Ready handlers to be called (which includes the require file func),
+          // before we evaluate whether the spy has executed.
+          process.nextTick(TestUtils.wrapAsync(next, function(){
+            expect(spy.calledWith(file)).to.be.true;
+          }));
+        });
       });
 
-      it.skip('should throw an unchecked Error if the configuration is in error and a file has been required')
+      it('should throw an unchecked Error if the configuration is in error and a file has been required', function(next){
+        var configurator = new Configurator(),
+          spy = sinon.spy(),
+          file = './server.js';
 
+        configurator.__exit = spy;
+
+        configurator
+          .render({ foo: 'bar', hello: '$notfound:{{foo}}' })
+          .andRequire(file);
+
+        configurator.on('error', function(){
+          // We're going to wait for all the other Error handlers to be called (which includes the __exit func),
+          // before we evaluate whether the spy has executed.
+          process.nextTick(TestUtils.wrapAsync(next, function(){
+            expect(spy.called).to.be.true;
+          }));
+        });
+      });
     });
 
     describe('Returning a Promise', function(){
 
-      it.skip('should resolve the promise when the configuration is ready', function(next){
+      it('should resolve the promise when the configuration is ready', function(next){
+
+        new Configurator()
+          .render({ foo: 'bar', hello: '{{foo}}' })
+          .and()
+          .then(
+            TestUtils.wrapAsync(next, function(config){
+              expect(config).to.deep.eq({
+                foo: 'bar',
+                hello: 'bar'
+              });
+            }),
+            TestUtils.wrapAsync(next, function(err){
+              expect.fail();
+            }));
 
       });
 
-      it.skip('should reject the promise if the configuration is in error', function(next){
+      it('should reject the promise if the configuration is in error', function(next){
 
+        new Configurator()
+          .render({ foo: '$notfound:bar' })
+          .and()
+          .then(
+            TestUtils.wrapAsync(next, function(config){
+              expect.fail();
+            }),
+            TestUtils.wrapAsync(next, function(err){
+              expect(err).to.be.an.instanceOf(errors.DirectiveHandlerNotFoundError);
+            }));
       });
     });
   });
