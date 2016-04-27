@@ -403,6 +403,19 @@ describe('Graph Builder', function(){
 
   describe('Tree Processing', function(){
 
+    it.skip('should return an error if there are errors parsing metadata from the tree', function(next){
+      var graphBuilder = new GraphBuilder();
+
+      var tree = {
+        "foo": "hello/{{bar#@$}}"
+      };
+
+      graphBuilder.processTree(tree, function(err){
+        expect(err).to.be.an.instanceOf(errors.CannotParseTreeError);
+        next();
+      });
+    });
+
     it('should return an error if the dependencies are cyclic', function(next){
 
       var graphBuilder = new GraphBuilder();

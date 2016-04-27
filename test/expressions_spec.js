@@ -132,9 +132,38 @@ describe('Expressions Handler', function(){
     expect(escaped).to.eq('http://<|||subdomain|||>.the-terribles.com/users/<|||userId|||>');
   });
 
-  it('should throw an exception if it cannot parse an expression', function(){
+  it.skip('should throw an exception if it cannot parse an expression', function(){
 
     expect(function(){ parse('http://{{host:port'); }).to.throw(Error);
+  });
+
+  it('should ignore JSON embedded in a field', function(){
+
+    var expression = 'config/{_id:"507f191e810c19729de860ea"}',
+        pieces = parse(expression);
+
+    expect(pieces.length).to.eq(1);
+
+    expectExpression(pieces).at(0).toBeContent(expression);
+
+    expression = '{ "foo": "bar" }';
+
+    pieces = parse(expression);
+
+    expect(pieces.length).to.eq(1);
+
+    expectExpression(pieces).at(0).toBeContent(expression);
+
+    expression = '{ "foo": "bar", "hello": "{{foobar}}" }';
+
+    pieces = parse(expression);
+
+    expect(pieces.length).to.eq(3);
+
+    expectExpression(pieces).at(0).toBeContent('{ "foo": "bar", "hello": "');
+    expectExpression(pieces).at(1).toBePlaceholder('foobar');
+    expectExpression(pieces).at(2).toBeContent('" }');
+
   });
 });
 

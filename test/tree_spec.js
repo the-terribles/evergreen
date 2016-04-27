@@ -307,6 +307,4 @@ describe('Tree Handler', function(){
       }
     });
   });
-
-
 });
