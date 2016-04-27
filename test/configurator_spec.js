@@ -205,6 +205,28 @@ describe('Configurator', function(){
     configurator.render(tree);
   });
 
+  it('should provide default directives', function(next){
+
+    var configurator = new Configurator();
+
+    var tree = {
+      hello: '$file:./test/directives/data/file-test.json',
+      world: '$require:./test/directives/data/file-test.js'
+    };
+
+    configurator.on('ready', function(config){
+
+      expect(config).to.deep.eq({
+        hello: { foo: 'bar' },
+        world: { foo: 6 }
+      });
+
+      next();
+    });
+
+    configurator.render(tree);
+  });
+
   it('should allow the addition of modules', function(next){
 
     var configurator = new Configurator();
