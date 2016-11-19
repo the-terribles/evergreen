@@ -3,6 +3,9 @@
 A declarative, referential configuration framework for Node.js.
 
 ![Build Status](https://circleci.com/gh/the-terribles/evergreen.svg?style=shield&circle-token=:circle-token)
+[![codecov.io](https://codecov.io/github/the-terribles/evergreen/coverage.svg?branch=master)](https://codecov.io/github/the-terribles/evergreen?branch=master)
+[![Dependency Status](https://david-dm.org/the-terribles/evergreen.svg)](https://david-dm.org/the-terribles/evergreen)
+[![devDependency Status](https://david-dm.org/the-terribles/evergreen/dev-status.svg)](https://david-dm.org/the-terribles/evergreen#info=devDependencies)
 
 The ultimate intent is to create a configuration system that will automatically update and/or notify the application of pending updates.  That way, your application always stays free ("evergreen", get it?).
 
@@ -117,28 +120,28 @@ And to use it, completely unobtrusively in your application, just import the dep
 
 ```javascript
 'use strict';
- 
+
 // At this point, config is just a plain old JavaScript object.
 let config = require('trbl-evergreen').config;
- 
+
 let _ = require('lodash'),
     Hapi = require('hapi'),
     server = new Hapi.Server();
-     
+
 server.connection({
   host: config.server.addr,
   port: config.server.port,
   routes: {"cors": true}
 });   
-     
+
 var plugins = _.map(config.plugins, (p) => {
   return { register: require(p.path), options: p };
 });     
-     
+
 server.register(plugins, (err) => {
-   
+
   if (err) process.exit(1);
-   
+
   server.start(() => {
     server.log(['info'], `Server running at: ${server.info.uri}`);
   });
@@ -168,4 +171,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
