@@ -3,3 +3,8 @@ machine:
     - docker
   node:
     version: 4.0.0
+
+test:
+  post:
+    - ./node_modules/.bin/istanbul cover node_modules/.bin/_mocha -- test --recursive --report lcovonly
+    - ./node_modules/.bin/codecov
