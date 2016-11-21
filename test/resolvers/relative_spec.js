@@ -3,6 +3,7 @@
 var _ = require('lodash'),
   chai = require('chai'),
   expect = chai.expect,
+  errors = require('../../lib/errors'),
   resolve = require('../../lib/resolvers/relative');
 
 describe('Resolvers', function(){
@@ -77,6 +78,20 @@ describe('Resolvers', function(){
           [{ field: 'meaning' }, { field: 'coffee' }, { index: 0 }]
         )
       ).to.eq('yes');
+    });
+
+    it('throws a propagated error if an error different from path not found occurs', function(){
+
+      expect(function(){
+        resolve(
+          tree,
+          'hello.world',
+          null,
+          'foo.bar',
+          [{ field: 'foo' }, { field: 'bar' }]
+        );
+      }).to.throw(errors.InvalidPathError);
+
     });
   });
 });
