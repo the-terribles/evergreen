@@ -124,6 +124,52 @@ describe('Graph Builder', function(){
 
     });
 
+    it ('should convert a resolver\'s Not Found into an "unresolved" leaf', function(){
+
+      var tree = _.cloneDeep(TEST_DATA.tree),
+          metadata = _.cloneDeep(TEST_DATA.metadata),
+          graphBuilder = new GraphBuilder({
+            resolvers: [
+              function(){
+                throw new errors.PathNotFoundError();
+              }
+            ]
+          });
+
+      var dependencies = graphBuilder.synchronizeLeafDependencies(tree, metadata, {
+        type: 'expression',
+        dependencies: {
+          'host': [ { field: 'host' }]
+        },
+        path: [ { field: 'pool' }, { field: 'connection' } ]
+      });
+
+      expect(dependencies).to.deep.eq({
+        'host': {
+          metadata: { type: 'unresolved' }
+        }
+      });
+    });
+
+    it ('should throw an error on invalid path supplied', function(){
+
+      var tree = _.cloneDeep(TEST_DATA.tree),
+          metadata = _.cloneDeep(TEST_DATA.metadata),
+          graphBuilder = new GraphBuilder();
+
+      expect(function(){
+        graphBuilder.synchronizeLeafDependencies(tree, metadata, {
+          type: 'expression',
+          dependencies: {
+            'host': [ { field: 'host' }],
+            'should.not.exist': null
+          },
+          path: [ { field: 'pool' }, { field: 'connection' } ]
+        });
+      }).to.throw(errors.InvalidPathError);
+
+    });
+
     it('should resolve dependencies for a leaf without a directive', function(){
 
       var tree = _.cloneDeep(TEST_DATA.tree),
@@ -177,7 +223,7 @@ describe('Graph Builder', function(){
         resolved: true,
         directive: 'I'
       });
-      
+
       var tree = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.tree),
           metadata = _.cloneDeep(TEST_DATA_WITH_DIRECTIVE.metadata),
           graphBuilder = new GraphBuilder(options);
