@@ -15,7 +15,7 @@ describe('Directives', function(){
 
     var TestContentLoader = function(loadFn){
       ContentLoader.call(this, 'test-content-loader');
-      this.load = loadFn;
+      this.load = loadFn || this.load;
     };
 
     util.inherits(TestContentLoader, ContentLoader);
@@ -76,6 +76,17 @@ describe('Directives', function(){
         expect(stub.called).to.be.true;
         expect(returnedContext).to.eq(context);
         expect(returnedContext.value).to.deep.eq({ foo: "bar" });
+        next();
+      });
+    });
+
+    it('should throw an error if the content loader does not implement the load function', function(next){
+
+      var contentLoader = new TestContentLoader(),
+        context = new DirectiveContext('test-content-loader', './asdf/asdf', []);
+
+      contentLoader.handle(context, {}, {}, function(err, returnedContext){
+        expect(err).to.be.an.instanceOf(errors.NotImplementedError)
         next();
       });
     });
